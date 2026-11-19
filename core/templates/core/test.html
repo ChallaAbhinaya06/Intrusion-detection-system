@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}IDS Traffic Testing{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+    }
+    .container {
+        width: 70%;
+        margin: 40px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    th, td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        text-align: center;
+    }
+    th {
+        background: #f1f5f9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <h1>Intrusion Detection – Traffic Testing</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- IMPORTANT: name must be datasets -->
+        <input type="file" name="datasets" accept=".csv" required>
+        <br><br>
+
+        <!-- IMPORTANT: backend expects action=test -->
+        <button type="submit" name="action" value="test">
+            Run Detection
+        </button>
+    </form>
+
+    {% if dataset_results %}
+        <hr>
+        <h2>Detection Summary</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Dataset</th>
+                    <th>Accuracy</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1 Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in dataset_results %}
+                <tr>
+                    <td>{{ result.dataset_name }}</td>
+                    <td>{{ result.accuracy }}</td>
+                    <td>{{ result.precision }}</td>
+                    <td>{{ result.recall }}</td>
+                    <td>{{ result.f1_score }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+</div>
+{% endblock %}

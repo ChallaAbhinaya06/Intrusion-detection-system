@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}IDS Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 2rem;
+    }
+
+    .dashboard-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    /* Simple Stats Section */
+    .stats-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+    }
+
+    .stats-section h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .stat-item {
+        padding: 0.75rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 1rem;
+    }
+
+    .stat-item:last-child {
+        border-bottom: none;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .stat-value.danger {
+        color: #ef4444;
+    }
+
+    .stat-value.success {
+        color: #10b981;
+    }
+
+    .stat-value.warning {
+        color: #f59e0b;
+    }
+
+    /* Charts Container */
+    .charts-container {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .chart-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    /* History Section */
+    .history-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+    }
+
+    .test-run-item {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+
+    .test-run-item:hover {
+        box-shadow: var(--shadow-sm);
+        border-color: var(--primary-color);
+    }
+
+    .test-run-info {
+        flex: 1;
+    }
+
+    .test-run-meta {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    @media (max-width: 968px) {
+        .charts-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ---- Delete-confirmation modal ---- */
+    .modal-overlay {
+        display: none;                          /* hidden by default */
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-overlay.active {                     /* shown when JS adds .active */
+        display: flex;
+    }
+
+    .modal-box {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        max-width: 440px;
+        width: 90%;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    .modal-box h3 {
+        margin: 0 0 0.75rem;
+        font-size: 1.2rem;
+        color: var(--text-primary);
+    }
+
+    .modal-box p {
+        margin: 0 0 1.5rem;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+        line-height: 1.5;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+
+    .btn-cancel {
+        padding: 0.55rem 1.2rem;
+        background: var(--light-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text-primary);
+    }
+
+    .btn-cancel:hover {
+        background: #e2e8f0;
+    }
+
+    .btn-confirm-delete {
+        padding: 0.55rem 1.2rem;
+        background: var(--danger-color);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-confirm-delete:hover {
+        background: #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    
+
+    <!-- Simple Stats Section -->
+    <div class="stats-section">
+        <h3 style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Detection Statistics</span>
+            <a href="/media/results/ids_report.pdf" target="_blank" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                Download PDF Report
+            </a>
+        </h3>
+        
+        <div class="stat-item">
+            <span class="stat-label">Total Malicious packets detected:</span>
+            <span class="stat-value danger">{{ attack_count|default:0 }}</span>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">Normal Traffic (Benign network activity):</span>
+            <span class="stat-value success">{{ normal_count|default:0 }}</span>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">Total Analysis (Packets analyzed):</span>
+            <span class="stat-value">{{ attack_count|add:normal_count|default:0 }}</span>
+        </div>
+
+        <div class="stat-item">
+            <span class="stat-label">Threat Level (Attack percentage):</span>
+            <span class="stat-value warning">
+                {% if attack_count > 0 and normal_count > 0 %}
+                    {% widthratio attack_count attack_count|add:normal_count 100 %}%
+                {% else %}
+                    0%
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-container">
+        <div class="chart-card">
+            <h3 class="chart-title">Traffic Overview</h3>
+            <canvas id="trafficChart" width="300" height="300"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h3 class="chart-title">Attack Type Distribution</h3>
+            <canvas id="attackTypeChart" width="500" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- Historical Test Runs -->
+    {% if test_runs %}
+    <div class="history-section">
+        <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <span>Test Run History</span>
+            {% if user.is_staff %}
+            <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="document.getElementById('deleteModal').classList.add('active')">
+                Delete All History
+            </button>
+            {% endif %}
+        </h3>
+        <!-- Delete button: admin only -->
+       
+        {% for run in test_runs %}
+            <div class="test-run-item">
+                <div class="test-run-info">
+                    <strong style="color: var(--text-primary);">
+                        {{ run.dataset.dataset_name }}
+                    </strong>
+                    <div class="test-run-meta">
+                        <span>{{ run.user.username|default:"System" }}</span>
+                        <span>
+                            {% if run.run_type == 'train' %}
+                                Training
+                            {% else %}
+                                Testing
+                            {% endif %}
+                        </span>
+                        <span>{{ run.created_at|date:"M d, Y H:i" }}</span>
+                        {% if run.accuracy %}
+                            <span>{{ run.accuracy|floatformat:4 }} accuracy</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="?test_run={{ run.id }}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                    View Details
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- =====================================================================
+     DELETE CONFIRMATION MODAL  (rendered always; shown/hidden via .active)
+     ===================================================================== -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <h3>Confirm: Delete All History</h3>
+        <p>This will permanently delete every test and training run
+           and all associated intrusion logs. This action cannot be undone.</p>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="document.getElementById('deleteModal').classList.remove('active')">
+                Cancel
+            </button>
+            <form action="{% url 'delete_all_runs' %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-confirm-delete">
+                    Yes, Delete Everything
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+(function () {
+    if (document.readyState !== "loading") {
+        initCharts();
+    } else {
+        document.addEventListener("DOMContentLoaded", initCharts);
+    }
+
+    function initCharts() {
+        const trafficCanvas = document.getElementById("trafficChart");
+        const attackCanvas  = document.getElementById("attackTypeChart");
+
+        if (!trafficCanvas || !attackCanvas) {
+            console.error("Dashboard canvas elements not found");
+            return;
+        }
+
+        // Traffic Overview (Doughnut)
+        new Chart(trafficCanvas, {
+            type: "doughnut",
+            data: {
+                labels: ["Attack Traffic", "Normal Traffic"],
+                datasets: [{
+                    data: [
+                        {{ attack_count|default:0 }},
+                        {{ normal_count|default:0 }}
+                    ],
+                    backgroundColor: ["#ef4444", "#10b981"],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: "bottom",
+                        labels: { padding: 15, font: { size: 12, weight: 600 } }
+                    }
+                }
+            }
+        });
+
+        // Attack Type Distribution (Bar)
+        new Chart(attackCanvas, {
+            type: "bar",
+            data: {
+                labels: [
+                    {% for a in attack_distribution %}
+                        "{{ a.predicted_class }}",
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: "Attack Count",
+                    data: [
+                        {% for a in attack_distribution %}
+                            {{ a.count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: "#2563eb",
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: "#e2e8f0" } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Accuracy Trend Chart (Line)
+        {% if test_runs %}
+        const trendCanvas = document.getElementById("trendChart");
+        if (trendCanvas) {
+            new Chart(trendCanvas, {
+                type: "line",
+                data: {
+                    labels: [
+                        {% for run in test_runs reversed %}
+                            "{{ run.created_at|date:'M d, H:i' }}",
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        label: "Accuracy",
+                        data: [
+                            {% for run in test_runs reversed %}
+                                {{ run.accuracy|default:0 }},
+                            {% endfor %}
+                        ],
+                        borderColor: "#10b981",
+                        backgroundColor: "rgba(16, 185, 129, 0.1)",
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointBackgroundColor: "#10b981",
+                        pointBorderColor: "#fff",
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return 'Accuracy: ' + (ctx.parsed.y * 100).toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true, max: 1,
+                            grid: { color: "#e2e8f0" },
+                            ticks: { callback: function(v) { return (v*100).toFixed(0)+'%'; } }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+        {% endif %}
+    }
+})();
+</script>
+{% endblock %}

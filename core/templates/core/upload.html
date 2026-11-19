@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Datasets{% endblock %}
+
+{% block extra_css %}
+<style>
+    .container {
+        width: 70%;
+        margin: 50px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Intrusion Detection System</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="datasets" multiple accept=".csv">
+        <br><br>
+        <button type="submit">Run Detection</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelector("form").addEventListener("submit", function () {
+        document.getElementById("progress-container")?.style.display = "block";
+    });
+</script>
+{% endblock %}

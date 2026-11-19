@@ -1,0 +1,488 @@
+{% extends "base.html" %}
+{% block title %}Real-Time Capture — IDS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .capture-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .capture-grid { grid-template-columns: 1fr; } }
+
+  .capture-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.75rem;
+    box-shadow: var(--shadow-md);
+    border-top: 4px solid var(--primary-color);
+  }
+  .capture-card.green  { border-top-color: #10b981; }
+  .capture-card.purple { border-top-color: #8b5cf6; }
+
+  .capture-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+  }
+  .capture-card .subtitle {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+  }
+
+  .form-row { margin-bottom: 1rem; }
+  .form-row label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--text-primary);
+  }
+  .form-row select,
+  .form-row input[type="text"],
+  .form-row input[type="number"] {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background: var(--light-bg);
+    transition: border-color 0.2s;
+  }
+  .form-row select:focus,
+  .form-row input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: white;
+  }
+
+  .btn-capture {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-capture:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .btn-capture:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-cic  { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; }
+  .btn-5g   { background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; }
+
+  /* Status box */
+  .status-box {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .status-box.running  { background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; display: flex; }
+  .status-box.done     { background: #f0fdf4; border: 1px solid #86efac; color: #166534; display: flex; }
+  .status-box.error    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; display: flex; }
+
+  .spinner-sm {
+    width: 16px; height: 16px;
+    border: 2px solid #93c5fd;
+    border-top-color: #1d4ed8;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Result download row */
+  .result-row {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .result-row .file-name { font-size: 0.88rem; color: #166534; font-weight: 600; }
+  .btn-use {
+    padding: 0.45rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .btn-use:hover { background: #059669; }
+
+  /* Instructions */
+  .info-box {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    color: #78350f;
+    margin-bottom: 1.5rem;
+  }
+  .info-box b { color: #92400e; }
+  .info-box code {
+    background: #fef3c7;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-top: 0.6rem;
+    background: #dbeafe;
+    border-radius: 20px;
+    height: 8px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-wrap.visible { display: block; }
+  .progress-bar {
+    height: 100%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    width: 0%;
+    transition: width 0.8s ease;
+  }
+  .progress-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-top: 0.3rem;
+    display: none;
+  }
+  .progress-label.visible { display: block; }
+
+  .no-scapy-banner {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    color: #991b1b;
+  }
+  .no-scapy-banner h4 { margin-bottom: 0.5rem; font-size: 1rem; }
+  .no-scapy-banner code {
+    background: #fee2e2; padding: 0.2rem 0.5rem;
+    border-radius: 4px; font-size: 0.85rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+ 
+  <!-- Capture Cards -->
+  <div class="capture-grid">
+
+    <!-- ── CIC-IDS2017 Card ───────────────────────────────────────── -->
+    <div class="capture-card">
+      <h3>CIC-IDS2017 Format</h3>
+      <p class="subtitle">79 columns · compatible with CIC_IDS2017 datasets</p>
+
+      <div class="form-row">
+        <label>Network Interface</label>
+        <select id="cic-iface">
+          {% if interfaces %}
+            {% for guid, desc in interfaces %}
+              <option value="{{ guid }}">{{ desc }}</option>
+            {% endfor %}
+          {% else %}
+            <option value="">-- Paste interface name manually below --</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <label>Specific interface <span style="font-weight:400;color:var(--text-secondary)">(optional — overrides dropdown)</span></label>
+        <input type="text" id="cic-iface-manual" placeholder='Leave blank to use dropdown selection above'>
+      </div>
+
+      <div class="form-row">
+        <label>Packets to Capture
+          <span style="font-weight:400;color:var(--text-secondary);font-size:0.8rem;">
+            — 200 ≈ 2–5 min · 500 ≈ 5–15 min · tip: stream a video while capturing
+          </span>
+        </label>
+        <input type="number" id="cic-count" value="200" min="50" max="50000">
+      </div>
+
+      <div class="form-row">
+        <label>Label (assigned to all flows)</label>
+        <select id="cic-label">
+          <option value="BENIGN">BENIGN — Normal traffic</option>
+          <option value="DDoS">DDoS</option>
+          <option value="DoS Hulk">DoS Hulk</option>
+          <option value="DoS GoldenEye">DoS GoldenEye</option>
+          <option value="DoS slowloris">DoS slowloris</option>
+          <option value="DoS Slowhttptest">DoS Slowhttptest</option>
+          <option value="PortScan">PortScan</option>
+          <option value="FTP-Patator">FTP-Patator</option>
+          <option value="SSH-Patator">SSH-Patator</option>
+          <option value="Heartbleed">Heartbleed</option>
+          <option value="Web Attack  Brute Force">Web Attack — Brute Force</option>
+          <option value="Web Attack  XSS">Web Attack — XSS</option>
+          <option value="Web Attack  Sql Injection">Web Attack — SQL Injection</option>
+          <option value="Infiltration">Infiltration</option>
+          <option value="Bot">Bot</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:.6rem;">
+        <button class="btn-capture btn-cic" id="cic-btn"
+                onclick="startCapture('cic')" style="flex:1;"
+                {% if not scapy_available %}disabled{% endif %}>
+          ▶ Capture CIC Traffic
+        </button>
+        <button class="btn-capture" id="cic-stop" onclick="stopCapture('cic')"
+                style="flex:0 0 auto;width:80px;background:#ef4444;display:none;">
+          ■ Stop
+        </button>
+      </div>
+
+      <div class="status-box" id="cic-status">
+        <div class="spinner-sm" id="cic-spinner"></div>
+        <span id="cic-status-text">Starting...</span>
+      </div>
+      <div class="progress-wrap" id="cic-progress-wrap">
+        <div class="progress-bar" id="cic-progress-bar"></div>
+      </div>
+      <div class="progress-label" id="cic-progress-label"></div>
+
+      <div class="result-row" id="cic-result">
+        <span class="file-name" id="cic-filename"></span>
+        <a class="btn-use" id="cic-use-btn" href="#">Use in Pipeline →</a>
+      </div>
+    </div>
+
+    
+
+  </div><!-- /capture-grid -->
+
+  <!-- Back button -->
+  <div style="text-align:center; margin-top:1rem;">
+    <a href="{% url 'ids_pipeline' %}" class="btn" style="background:var(--secondary-color);color:white;padding:.6rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;">
+      ← Back to Pipeline
+    </a>
+  </div>
+
+</div><!-- /container -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF        = "{{ csrf_token }}";
+const STATUS_URL  = "{% url 'realtime_capture_status' session_key='PLACEHOLDER' %}";
+const START_URL   = "{% url 'realtime_capture_start' %}";
+const PIPELINE_URL = "{% url 'ids_pipeline' %}";
+
+// Time estimate: your home/office network generates ~1-5 pkts/sec browsing.
+// 200 pkts at ~2 pkts/sec = ~100s. We use 1500ms/pkt as a safe upper bound.
+// The server has a hard timeout of max(60s, count*3s) so it WILL finish.
+const AVG_MS_PER_PKT = 1500;  // 1.5s per packet (safe upper bound for idle nets)
+
+function normalizeIface(raw) {
+  const s = raw.trim();
+  if (!s) return s;
+  if (s.startsWith('\\Device\\NPF_') || s.startsWith('\\\\Device\\\\NPF_')) return s;
+  if (s.startsWith('{') && s.endsWith('}')) return '\\Device\\NPF_' + s;
+  if (s.toUpperCase().startsWith('NPF_'))   return '\\Device\\' + s;
+  return s;
+}
+
+function getIface(type) {
+  const manual = document.getElementById(`${type}-iface-manual`).value.trim();
+  if (manual) return normalizeIface(manual);
+  const dropdown = document.getElementById(`${type}-iface`).value;
+  // "ALL" passes through as-is — backend maps it to iface=None (all interfaces)
+  if (dropdown === 'ALL' || dropdown === '') return 'ALL';
+  return normalizeIface(dropdown);
+}
+
+function fmt(secs) {
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs/60)}m ${secs%60}s`;
+}
+
+function setStatus(type, state, msg) {
+  const box  = document.getElementById(`${type}-status`);
+  const txt  = document.getElementById(`${type}-status-text`);
+  const spin = document.getElementById(`${type}-spinner`);
+  box.className = `status-box ${state}`;
+  txt.textContent = msg;
+  spin.style.display = state === 'running' ? 'block' : 'none';
+}
+
+function setProgress(type, pct, labelText) {
+  const wrap  = document.getElementById(`${type}-progress-wrap`);
+  const bar   = document.getElementById(`${type}-progress-bar`);
+  const label = document.getElementById(`${type}-progress-label`);
+  wrap.classList.toggle('visible', pct >= 0);
+  label.classList.toggle('visible', !!labelText);
+  bar.style.width  = Math.min(pct, 98) + '%';   // never show 100% until truly done
+  label.textContent = labelText || '';
+}
+
+function clearProgress(type) {
+  document.getElementById(`${type}-progress-wrap`).classList.remove('visible');
+  document.getElementById(`${type}-progress-label`).classList.remove('visible');
+  document.getElementById(`${type}-progress-bar`).style.width = '0%';
+}
+
+function showResult(type, filename) {
+  const row  = document.getElementById(`${type}-result`);
+  const name = document.getElementById(`${type}-filename`);
+  const btn  = document.getElementById(`${type}-use-btn`);
+  name.textContent = filename;
+  btn.href = PIPELINE_URL + `?captured=${encodeURIComponent(filename)}`;
+  row.style.display = 'flex';
+}
+
+// Active intervals per type so Stop can cancel them
+const _intervals = {};
+
+function stopCapture(type) {
+  // Cancel client-side polling
+  if (_intervals[type]) {
+    clearInterval(_intervals[type]);
+    delete _intervals[type];
+  }
+  clearProgress(type);
+  setStatus(type, 'error', 'Capture stopped by user. Any flows already captured are saved.');
+  document.getElementById(`${type}-btn`).disabled  = false;
+  document.getElementById(`${type}-stop`).style.display = 'none';
+}
+
+function poll(type, sessionKey, totalPackets) {
+  const url      = STATUS_URL.replace('PLACEHOLDER', sessionKey);
+  const startMs  = Date.now();
+  const estMs    = totalPackets * AVG_MS_PER_PKT;   // estimated total duration
+
+  // Client-side hard timeout = server timeout + 30s grace
+  const clientTimeoutMs = Math.max(90000, totalPackets * 3000 + 30000);
+
+  _intervals[type] = setInterval(async () => {
+    const elapsedMs  = Date.now() - startMs;
+    const elapsedSec = Math.floor(elapsedMs / 1000);
+    const remainSec  = Math.max(0, Math.round((estMs - elapsedMs) / 1000));
+    const pct        = Math.min((elapsedMs / estMs) * 100, 97);
+
+    // Client-side hard timeout — prevents infinite spin
+    if (elapsedMs > clientTimeoutMs) {
+      clearInterval(_intervals[type]);
+      delete _intervals[type];
+      clearProgress(type);
+      setStatus(type, 'error',
+        `Timed out after ${fmt(elapsedSec)}. ` +
+        `Try fewer packets or check interface. The server may still finish — check media/datasets/.`);
+      document.getElementById(`${type}-btn`).disabled  = false;
+      document.getElementById(`${type}-stop`).style.display = 'none';
+      return;
+    }
+
+    setProgress(
+      type, pct,
+      remainSec > 0
+        ? `Elapsed: ${fmt(elapsedSec)} · Est. remaining: ≤${fmt(remainSec)}`
+        : `Elapsed: ${fmt(elapsedSec)} · finishing up...`
+    );
+    setStatus(type, 'running', `Capturing packets... ${elapsedSec}s elapsed`);
+
+    try {
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      if (data.status === 'done') {
+        clearInterval(_intervals[type]);
+        delete _intervals[type];
+        clearProgress(type);
+        setStatus(type, 'done', `✓ ${data.message}  (${fmt(elapsedSec)} total)`);
+        showResult(type, data.file);
+        document.getElementById(`${type}-btn`).disabled  = false;
+        document.getElementById(`${type}-stop`).style.display = 'none';
+
+      } else if (data.status === 'error') {
+        clearInterval(_intervals[type]);
+        delete _intervals[type];
+        clearProgress(type);
+        setStatus(type, 'error', `✗ ${data.message}`);
+        document.getElementById(`${type}-btn`).disabled  = false;
+        document.getElementById(`${type}-stop`).style.display = 'none';
+      }
+    } catch(e) {
+      clearInterval(_intervals[type]);
+      delete _intervals[type];
+      clearProgress(type);
+      setStatus(type, 'error', 'Connection error. Is the server running?');
+      document.getElementById(`${type}-btn`).disabled  = false;
+      document.getElementById(`${type}-stop`).style.display = 'none';
+    }
+  }, 1500);
+}
+
+async function startCapture(type) {
+  const iface = getIface(type);
+  // "ALL" is valid — means capture on all interfaces
+  if (!iface) {
+    alert('Please select or enter a network interface name.');
+    return;
+  }
+
+  const count = parseInt(document.getElementById(`${type}-count`).value, 10);
+  const label = document.getElementById(`${type}-label`).value;
+  const tool  = type === '5g' ? document.getElementById('5g-tool').value : 'Live-Capture';
+  const estSec = Math.round(count * AVG_MS_PER_PKT / 1000);
+
+  document.getElementById(`${type}-btn`).disabled = true;
+  document.getElementById(`${type}-stop`).style.display = 'inline-block';
+  document.getElementById(`${type}-result`).style.display = 'none';
+  setStatus(type, 'running', `Starting capture — est. ≤${fmt(estSec)} for ${count} packets...`);
+  setProgress(type, 0, `Est. total time: ≤${fmt(estSec)}  (may be faster on busy networks)`);
+
+  const body = new URLSearchParams({
+    dataset_type: type,
+    iface,
+    packet_count: count,
+    label,
+    attack_type:  label,
+    attack_tool:  tool,
+    csrfmiddlewaretoken: CSRF,
+  });
+
+  try {
+    const res  = await fetch(START_URL, { method: 'POST', body });
+    const data = await res.json();
+    if (data.status === 'started') {
+      poll(type, data.session_key, count);
+    } else {
+      clearProgress(type);
+      setStatus(type, 'error', data.message || 'Failed to start.');
+      document.getElementById(`${type}-btn`).disabled = false;
+    }
+  } catch(e) {
+    clearProgress(type);
+    setStatus(type, 'error', 'Request failed. Is the server running?');
+    document.getElementById(`${type}-btn`).disabled = false;
+  }
+}
+</script>
+{% endblock %}

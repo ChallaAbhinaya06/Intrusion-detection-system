@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - IDS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px #dbeafe;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #ef4444;
+            font-size: 0.9rem;
+        }
+
+        .help-text {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo"></div>
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Sign in to access the IDS Platform</p>
+        </div>
+
+        {% if form.errors %}
+            <div class="error-message">
+                 Invalid username or password. Please try again.
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_username">Username</label>
+                <input 
+                    type="text" 
+                    name="username" 
+                    id="id_username"
+                    required
+                    autofocus
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="id_password">Password</label>
+                <input 
+                    type="password" 
+                    name="password" 
+                    id="id_password"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <button type="submit" class="btn-login">
+                Sign In
+            </button>
+        </form>
+
+        <p style="text-align: center; margin-top: 2rem; color: #64748b; font-size: 0.85rem;">
+            Authorized Personnel Only
+        </p>
+    </div>
+</body>
+</html>

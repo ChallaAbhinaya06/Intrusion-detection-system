@@ -1,0 +1,35 @@
+<nav>
+    <div class="nav-container">
+        <a href="{% url 'ids_pipeline' %}" class="nav-brand">
+            IDS Platform
+        </a>
+        
+        <div class="nav-links">
+            <a href="{% url 'ids_pipeline' %}" class="nav-link">
+                Home
+            </a>
+            
+            {% if perms.core.can_view_dashboard %}
+                <a href="{% url 'ids_dashboard' %}" class="nav-link">
+                    Dashboard
+                </a>
+            {% endif %}
+            
+            <div class="user-info">
+                <span>{{ user.username }}</span>
+                {% if user.groups.all %}
+                    <span class="user-badge">
+                        {{ user.groups.all.0.name }}
+                    </span>
+                {% endif %}
+            </div>
+            
+            <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                    Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</nav>
